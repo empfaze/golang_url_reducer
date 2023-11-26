@@ -31,7 +31,7 @@ const ALIAS_LENGTH = 5
 
 func New(logger *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger = logger.With(
+		logger := logger.With(
 			slog.String("operation", OPERATION_TRACE_NEW),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)

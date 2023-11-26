@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/empfaze/golang_url_reducer/internal/config"
+	"github.com/empfaze/golang_url_reducer/internal/http_server/handlers/redirect"
 	"github.com/empfaze/golang_url_reducer/internal/http_server/handlers/url"
 	"github.com/empfaze/golang_url_reducer/internal/logger"
 	"github.com/empfaze/golang_url_reducer/internal/storage/sqlite"
@@ -33,7 +34,15 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	router.Post("/url", url.New(logger, storage))
+	router.Route("/url", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("url_reducer", utils.AllowedUsers()))
+		r.Post("/", url.New(logger, storage))
+	})
+
+	router.Route("/alias", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("url_reducer", utils.AllowedUsers()))
+		r.Get("/{alias}", redirect.New(logger, storage))
+	})
 
 	logger.Info("Starting server", slog.String("address", config.Address))
 
