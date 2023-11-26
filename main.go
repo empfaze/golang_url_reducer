@@ -1,13 +1,18 @@
 package main
 
 import (
+	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/empfaze/golang_url_reducer/internal/config"
+	"github.com/empfaze/golang_url_reducer/internal/http_server/handlers/url"
 	"github.com/empfaze/golang_url_reducer/internal/logger"
 	"github.com/empfaze/golang_url_reducer/internal/storage/sqlite"
 	"github.com/empfaze/golang_url_reducer/utils"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -21,5 +26,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = storage
+	router := chi.NewRouter()
+
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+
+	router.Post("/url", url.New(logger, storage))
+
+	logger.Info("Starting server", slog.String("address", config.Address))
+
+	server := &http.Server{
+		Addr:         config.Address,
+		Handler:      router,
+		ReadTimeout:  config.Timeout,
+		WriteTimeout: config.Timeout,
+		IdleTimeout:  config.IdleTimeout,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
+		logger.Error("Failed to start server")
+	}
+
+	logger.Error("Server has been stopped")
 }
